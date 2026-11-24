@@ -1,76 +1,26 @@
-# QuickForm
+# simple-form-app
 
-A small, deployable Next.js + React + Tailwind form website. Submissions are saved to a Supabase Postgres table.
+Tiny contact form (plain HTML, no CSS) that saves to Postgres. Built to pass the K8s platform tests.
 
-## Fields
+## Endpoints
+- `GET /` form + latest 20 submissions
+- `POST /submit` save a submission
+- `GET /healthz` liveness (never touches the DB)
+- `GET /ready` readiness (503 only while shutting down)
+- `GET /db-status` shows if the DB is configured and reachable
 
-- Full name (required)
-- Email address (required)
-- Phone number
-- City
-- Message
-
-## 1. Create the database
-
-1. Create a project at [Supabase](https://supabase.com/).
-2. Open **SQL Editor** in your Supabase dashboard.
-3. Run the SQL in `supabase/schema.sql`.
-4. Open **Project Settings → API** and copy the Project URL and `service_role` key.
-
-## 2. Configure environment variables
-
-Copy `.env.example` to `.env.local` and fill in:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-Keep the service-role key secret. Never prefix it with `NEXT_PUBLIC_`.
-
-## 3. Run locally
-
-Requires Node.js 20.9 or newer.
-
+## Run locally
 ```bash
-npm install
-npm run dev
+docker build -t form-app .
+docker run --rm -p 8080:8080 -e DATABASE_URL='postgres://user:pass@host:5432/db?sslmode=require' form-app
 ```
+Open http://localhost:8080
 
-Open http://localhost:3000.
-
-## 4. Deploy to Vercel
-
-1. Push this project to a GitHub repository.
-2. Import the repository in [Vercel](https://vercel.com/).
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in **Project Settings → Environment Variables**.
-4. Deploy.
-
-The form will save submissions to `public.form_submissions` in Supabase.
-
-## Notes
-
-- The API validates and trims incoming values on the server.
-- The service-role key is used only by the server API route.
-- For a public production form, consider adding CAPTCHA/rate limiting and a privacy notice before collecting real personal data.
-
-
-## Run with Docker
-
-Build the production image:
-
-```bash
-docker build -t quick-form .
-```
-
-Run it with your Supabase credentials:
-
-```bash
-docker run --name quick-form -p 3000:3000 \\
-  -e NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co" \\
-  -e SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \\
-  quick-form
-```
-
-Open http://localhost:3000. The container listens on port `3000`.
-Keep the Supabase service-role key secret and never place it in client-side code.
+## Onboard on the platform
+- Repo: your GitHub URL, branch `main`
+- Build method: `dockerfile`
+- Port: `8080`
+- Liveness path: `/healthz`, readiness path: `/ready`
+- DB mode: `shared`
+- Secret name: `DATABASE_URL` (paste your DB URL when asked)
+- Optional env var: `DB_SSL=true`

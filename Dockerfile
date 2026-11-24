@@ -1,30 +1,15 @@
-# syntax=docker/dockerfile:1
-
-FROM node:20-alpine AS deps
+FROM node:20-alpine
+ENV NODE_ENV=production PORT=8080
 WORKDIR /app
 COPY package.json ./
-RUN npm install
-
-FROM node:20-alpine AS builder
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-EXPOSE 3000
+RUN npm install --omit=dev && npm cache clean --force
+COPY db.js server.js migrate.js ./
+# Commands the platform's migration Jobs call
+RUN for p in expand verify contract; do \
+      printf '#!/bin/sh\nexec node /app/migrate.js %s\n' "$p" > /usr/local/bin/migrate-$p; \
+      chmod +x /usr/local/bin/migrate-$p; \
+    done
+# Numeric user: Kubernetes runAsNonRoot cannot verify a named user
+USER 1000:1000
+EXPOSE 8080
 CMD ["node", "server.js"]
