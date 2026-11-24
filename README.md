@@ -53,3 +53,24 @@ The form will save submissions to `public.form_submissions` in Supabase.
 - The API validates and trims incoming values on the server.
 - The service-role key is used only by the server API route.
 - For a public production form, consider adding CAPTCHA/rate limiting and a privacy notice before collecting real personal data.
+
+
+## Run with Docker
+
+Build the production image:
+
+```bash
+docker build -t quick-form .
+```
+
+Run it with your Supabase credentials:
+
+```bash
+docker run --name quick-form -p 3000:3000 \\
+  -e NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co" \\
+  -e SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \\
+  quick-form
+```
+
+Open http://localhost:3000. The container listens on port `3000`.
+Keep the Supabase service-role key secret and never place it in client-side code.
